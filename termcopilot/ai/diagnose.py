@@ -22,20 +22,27 @@ Ta réponse doit être un JSON strict avec cette structure exacte, sans texte av
 
 Marque "dangereuse": true pour toute commande qui modifie, supprime, redémarre ou arrête quelque chose.
 Marque "dangereuse": false uniquement pour les commandes de lecture seule (diagnostic).
+Limite-toi à 6 actions recommandées maximum.
 """
+
+MAX_PAYLOAD_CHARS = 6000
 
 
 def diagnose_system(diagnostic_bundle):
     """Envoie les données système à Groq et récupère un diagnostic structuré."""
+    payload = json.dumps(diagnostic_bundle, indent=2, default=str)
+    if len(payload) > MAX_PAYLOAD_CHARS:
+        payload = payload[:MAX_PAYLOAD_CHARS] + "\n... (tronqué)"
+
     user_message = f"""Voici les données de diagnostic système :
 
-{json.dumps(diagnostic_bundle, indent=2, default=str)}
+{payload}
 
 Analyse ces données et fournis ton diagnostic au format JSON demandé."""
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-120b",
-        max_tokens=1500,
+        max_tokens=1200,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},

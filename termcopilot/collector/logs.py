@@ -2,9 +2,9 @@ import subprocess
 import json
 
 
-def get_recent_logs(minutes=10, priority="err"):
+def get_recent_logs(minutes=10, priority="err", max_lines=15):
     """
-    Récupère les logs système récents via journalctl.
+    Récupère les logs système récents via journalctl (limité en nombre de lignes).
     priority: emerg, alert, crit, err, warning, notice, info, debug
     """
     try:
@@ -12,7 +12,7 @@ def get_recent_logs(minutes=10, priority="err"):
             [
                 "journalctl",
                 f"--since=-{minutes}min",
-                f"-p", priority,
+                "-p", priority,
                 "--no-pager",
                 "-o", "short-iso",
             ],
@@ -21,7 +21,7 @@ def get_recent_logs(minutes=10, priority="err"):
             timeout=10,
         )
         lines = result.stdout.strip().split("\n") if result.stdout.strip() else []
-        return lines
+        return lines[-max_lines:]
     except FileNotFoundError:
         return ["journalctl non disponible sur ce système"]
     except Exception as e:
@@ -43,13 +43,13 @@ def get_failed_services():
 
 
 def get_diagnostic_bundle():
-    """Rassemble toutes les infos de diagnostic en un seul objet."""
+    """Rassemble toutes les infos de diagnostic en un seul objet, limité en taille."""
     from termcopilot.collector.metrics import get_system_metrics
 
     return {
         "metrics": get_system_metrics(),
-        "recent_error_logs": get_recent_logs(minutes=10, priority="err"),
-        "failed_services": get_failed_services(),
+        "recent_error_logs": get_recent_logs(minutes=10, priority="err", max_lines=15),
+        "failed_services": get_failed_services()[:10],
     }
 
 
