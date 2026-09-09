@@ -3,6 +3,11 @@ import json
 from termcopilot.collector.logs import get_diagnostic_bundle
 from termcopilot.ai.diagnose import diagnose_system
 from termcopilot.security.validator import execute_command
+from termcopilot.storage.history import (
+    save_diagnostic,
+    save_action,
+    get_diagnostic_history,
+)
 
 
 @click.group()
@@ -19,6 +24,8 @@ def diagnose():
 
     click.echo("🤖 Analyse par l'IA en cours...")
     result = diagnose_system(bundle)
+
+    save_diagnostic(bundle, result)
 
     click.echo(f"\n📋 Diagnostic : {result.get('diagnostic')}")
     click.echo(f"🚨 Gravité : {result.get('gravite')}")
@@ -52,6 +59,7 @@ def fix():
 
     for a in actions:
         outcome = execute_command(a["commande"], force_confirm=True)
+        save_action(a["commande"], outcome)
         if outcome["executed"]:
             click.echo(f"✅ Exécuté : {a['commande']}")
         else:
@@ -75,6 +83,19 @@ def monitor(interval):
             time.sleep(interval)
     except KeyboardInterrupt:
         click.echo("\n👋 Surveillance arrêtée.")
+
+
+@cli.command()
+@click.option("--limit", default=10, help="Nombre d'entrées à afficher")
+def history(limit):
+    """Affiche l'historique des diagnostics passés."""
+    entries = get_diagnostic_history(limit)
+    if not entries:
+        click.echo("Aucun historique pour le moment.")
+        return
+    for e in entries:
+        result = json.loads(e["result"])
+        click.echo(f"[{e['timestamp']}] {result.get('diagnostic')} (gravité: {result.get('gravite')})")
 
 
 if __name__ == "__main__":
