@@ -3,3 +3,4 @@ click
 psutil
 python-dotenv
 groq
+pytest
