@@ -2,3 +2,4 @@ anthropic
 click
 psutil
 python-dotenv
+groq
